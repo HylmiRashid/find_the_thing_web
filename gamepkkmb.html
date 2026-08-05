@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Find The Thing PKKMB TI 2026</title>
+<style>
+  :root{
+    --bg: #10142B;
+    --panel: #1B2143;
+    --panel-2: #232B54;
+    --gold: #FFB020;
+    --gold-dim: #B98218;
+    --green: #2FD98C;
+    --green-dark: #12633F;
+    --red: #FF5D5D;
+    --red-dark: #7A1F1F;
+    --text: #F1F3F9;
+    --text-dim: #9BA1C4;
+    --line: #2C3466;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 20% -10%, rgba(255,176,32,0.08), transparent 40%),
+      radial-gradient(circle at 90% 10%, rgba(47,217,140,0.06), transparent 35%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'Inter','Segoe UI',Arial,sans-serif;
+    padding: 32px 16px 64px;
+  }
+  .wrap{ max-width: 880px; margin: 0 auto; }
+  .eyebrow{
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 12px;
+    color: var(--gold);
+    font-weight: 700;
+    text-align:center;
+  }
+  h1{
+    font-family: 'Poppins','Segoe UI',sans-serif;
+    font-weight: 800;
+    font-size: clamp(28px,5vw,42px);
+    text-align:center;
+    margin: 6px 0 4px;
+    letter-spacing: 0.5px;
+  }
+  .sub{
+    text-align:center;
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 36px;
+  }
+  .screen{ display:none; }
+  .screen.active{ display:block; }
+
+  /* Landing: grid of team cards */
+  .team-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+    gap: 14px;
+  }
+  .team-card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 16px;
+    text-align:center;
+    cursor:pointer;
+    transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    position: relative;
+    overflow:hidden;
+  }
+  .team-card:hover{
+    transform: translateY(-3px);
+    border-color: var(--gold-dim);
+    background: var(--panel-2);
+  }
+  .team-card .num{
+    font-family:'Poppins',sans-serif;
+    font-weight:800;
+    font-size: 34px;
+    color: var(--gold);
+    display:block;
+  }
+  .team-card .label{
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .team-card .progress{
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .team-card .dots{
+    display:flex; gap:5px; justify-content:center; margin-top:8px;
+  }
+  .dot{ width:9px; height:9px; border-radius:50%; background: var(--line); }
+  .dot.correct{ background: var(--green); }
+  .dot.wrong{ background: var(--red); }
+
+  /* Team screen */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom: 24px;
+  }
+  .backbtn{
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor:pointer;
+    font-size: 13px;
+  }
+  .backbtn:hover{ border-color: var(--gold-dim); }
+  .team-title{
+    font-family:'Poppins',sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--gold);
+  }
+  .qgrid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px,1fr));
+    gap: 14px;
+  }
+  .qbox{
+    aspect-ratio: 1 / 1;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    cursor:pointer;
+    transition: transform .15s ease;
+    perspective: 600px;
+  }
+  .qbox:hover{ transform: translateY(-3px); }
+  .qbox .qnum{
+    font-family:'Poppins',sans-serif;
+    font-weight: 800;
+    font-size: 32px;
+  }
+  .qbox .qstate{
+    font-size: 11px;
+    text-transform:uppercase;
+    letter-spacing: 1px;
+    margin-top: 6px;
+    color: var(--text-dim);
+  }
+  .qbox.unanswered .qnum{ color: var(--gold); }
+  .qbox.correct{
+    background: var(--green-dark);
+    border-color: var(--green);
+  }
+  .qbox.correct .qnum, .qbox.correct .qstate{ color: #C9FCE4; }
+  .qbox.wrong{
+    background: var(--red-dark);
+    border-color: var(--red);
+  }
+  .qbox.wrong .qnum, .qbox.wrong .qstate{ color: #FFD8D8; }
+  .qbox.flip{ animation: flipIn .4s ease; }
+  @keyframes flipIn{
+    0%{ transform: rotateX(0deg); }
+    50%{ transform: rotateX(90deg); }
+    100%{ transform: rotateX(0deg); }
+  }
+
+  /* Modal */
+  .overlay{
+    position: fixed; inset:0;
+    background: rgba(6,8,20,0.72);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index: 50;
+    padding: 16px;
+  }
+  .overlay.active{ display:flex; }
+  .modal{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 420px;
+  }
+  .modal h3{
+    margin: 0 0 4px;
+    font-family:'Poppins',sans-serif;
+    font-size: 18px;
+  }
+  .modal .qtext{
+    color: var(--text-dim);
+    font-size: 14px;
+    margin: 8px 0 18px;
+    line-height: 1.5;
+  }
+  .modal input[type=text]{
+    width:100%;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #0D1130;
+    color: var(--text);
+    font-size: 15px;
+    margin-bottom: 16px;
+  }
+  .modal input[type=text]:focus{ outline: 2px solid var(--gold-dim); }
+  .modal-actions{ display:flex; gap:10px; }
+  .btn{
+    flex:1;
+    padding: 11px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--text);
+    cursor:pointer;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .btn.primary{
+    background: var(--gold);
+    border-color: var(--gold);
+    color: #201400;
+  }
+  .btn:hover{ opacity: .88; }
+  .feedback{
+    margin-top: 14px;
+    font-size: 14px;
+    font-weight: 700;
+    text-align:center;
+    display:none;
+  }
+  .feedback.show{ display:block; }
+  .feedback.ok{ color: var(--green); }
+  .feedback.bad{ color: var(--red); }
+
+  /* Admin */
+  .admin-toggle{
+    text-align:center;
+    margin-top: 40px;
+  }
+  .admin-toggle a{
+    color: var(--text-dim);
+    font-size: 12px;
+    text-decoration: underline;
+    cursor:pointer;
+  }
+  .admin-field{ margin-bottom: 18px; }
+  .admin-field label{
+    display:block;
+    font-size: 12px;
+    text-transform:uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .admin-field input{
+    width:100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #0D1130;
+    color: var(--text);
+    font-size: 14px;
+  }
+  .admin-q{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .save-row{ display:flex; gap:10px; margin-top: 8px; flex-wrap: wrap;}
+  .status-msg{
+    text-align:center;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 10px;
+    min-height: 18px;
+  }
+  .warn-box{
+    background: var(--panel);
+    border: 1px solid var(--gold-dim);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">PKKMB Informatika 2026</div>
+  <h1>Find The Thing</h1>
+  <div class="sub" id="subline">Pilih kelompok untuk mulai menjawab</div>
+
+  <div id="warnBox" class="warn-box" style="display:none;">
+    Soal belum diatur oleh panitia. Silakan buka menu <b>Admin</b> di bawah untuk mengisi 5 soal dan kunci jawaban terlebih dahulu.
+  </div>
+
+  <!-- LANDING -->
+  <div class="screen active" id="screen-landing">
+    <div class="team-grid" id="teamGrid"></div>
+    <div class="admin-toggle"><a id="goAdmin">Panel admin</a></div>
+  </div>
+
+  <!-- TEAM -->
+  <div class="screen" id="screen-team">
+    <div class="topbar">
+      <button class="backbtn" id="backToLanding">&larr; Kembali</button>
+      <div class="team-title" id="teamTitle"></div>
+      <div style="width:90px;"></div>
+    </div>
+    <div class="qgrid" id="qGrid"></div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="screen" id="screen-admin">
+    <div class="topbar">
+      <button class="backbtn" id="backFromAdmin">&larr; Kembali</button>
+      <div class="team-title">Panel Admin</div>
+      <div style="width:90px;"></div>
+    </div>
+    <div id="adminForm"></div>
+    <div class="save-row">
+      <button class="btn primary" id="saveConfig">Simpan soal & kunci jawaban</button>
+      <button class="btn" id="resetAll">Reset semua status kelompok</button>
+    </div>
+    <div class="status-msg" id="adminStatus"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modalTitle">Soal 1</h3>
+    <div class="qtext" id="modalQtext"></div>
+    <input type="text" id="answerInput" placeholder="Ketik jawaban di sini" autocomplete="off">
+    <div class="feedback" id="modalFeedback"></div>
+    <div class="modal-actions">
+      <button class="btn" id="cancelBtn">Batal</button>
+      <button class="btn primary" id="submitBtn">Kirim jawaban</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TEAM_COUNT = 7;
+const TEAM_NAMES = {
+  1: 'Kelompok Viren',
+  2: 'Kelompok Sydney',
+  3: 'Kelompok Malik',
+  4: 'Kelompok Daniel',
+  5: 'Kelompok Albert',
+  6: 'Kelompok Shantita',
+  7: 'Kelompok Midzan'
+};
+let config = null; // {questions:[{text,answer}]}
+let teamStatus = {}; // {1: {status,answer}, ...} for current open team
+let currentTeam = null;
+let currentQ = null;
+
+const $ = (id) => document.getElementById(id);
+
+function getTeamName(teamNum){
+  return TEAM_NAMES[teamNum] || ('Kelompok ' + teamNum);
+}
+
+async function storageGet(key){
+  try{
+    if(window.storage && typeof window.storage.get === 'function'){
+      return await window.storage.get(key, true);
+    }
+    const value = window.localStorage.getItem(key);
+    return value !== null ? { value } : null;
+  }catch(e){
+    return null;
+  }
+}
+
+async function storageSet(key, value){
+  try{
+    if(window.storage && typeof window.storage.set === 'function'){
+      await window.storage.set(key, value, true);
+      return;
+    }
+    window.localStorage.setItem(key, value);
+  }catch(e){
+    throw e;
+  }
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+async function loadConfig(){
+  try{
+    const r = await storageGet('config');
+    config = r ? JSON.parse(r.value) : null;
+  }catch(e){
+    config = null;
+  }
+  $('warnBox').style.display = (config && config.questions && config.questions.length === 5) ? 'none' : 'block';
+}
+
+async function getTeamStatus(teamNum){
+  try{
+    const r = await storageGet('status:kelompok-' + teamNum);
+    return r ? JSON.parse(r.value) : {};
+  }catch(e){
+    return {};
+  }
+}
+
+async function setTeamStatus(teamNum, status){
+  try{
+    await storageSet('status:kelompok-' + teamNum, JSON.stringify(status));
+  }catch(e){
+    console.error('Gagal menyimpan status', e);
+  }
+}
+
+async function renderLanding(){
+  const grid = $('teamGrid');
+  grid.innerHTML = '';
+  for(let i=1;i<=TEAM_COUNT;i++){
+    const status = await getTeamStatus(i);
+    const card = document.createElement('div');
+    card.className = 'team-card';
+    let correctCount = 0, answeredCount = 0;
+    let dots = '';
+    for(let q=1;q<=5;q++){
+      const s = status[q] && status[q].status;
+      if(s === 'correct'){ correctCount++; answeredCount++; dots += '<div class="dot correct"></div>'; }
+      else if(s === 'wrong'){ answeredCount++; dots += '<div class="dot wrong"></div>'; }
+      else{ dots += '<div class="dot"></div>'; }
+    }
+    card.innerHTML = `
+      <span class="num">${i}</span>
+      <span class="label">${getTeamName(i)}</span>
+      <div class="progress">${correctCount}/5 benar</div>
+      <div class="dots">${dots}</div>
+    `;
+    card.addEventListener('click', () => openTeam(i));
+    grid.appendChild(card);
+  }
+}
+
+async function openTeam(teamNum){
+  currentTeam = teamNum;
+  teamStatus = await getTeamStatus(teamNum);
+  $('teamTitle').textContent = getTeamName(teamNum);
+  renderQuestionGrid();
+  showScreen('screen-team');
+}
+
+function renderQuestionGrid(){
+  const grid = $('qGrid');
+  grid.innerHTML = '';
+  for(let q=1;q<=5;q++){
+    const s = teamStatus[q] && teamStatus[q].status;
+    const box = document.createElement('div');
+    box.className = 'qbox ' + (s === 'correct' ? 'correct' : s === 'wrong' ? 'wrong' : 'unanswered');
+    box.innerHTML = `<span class="qnum">${q}</span><span class="qstate">${s === 'correct' ? 'Benar' : s === 'wrong' ? 'Salah' : 'Jawab'}</span>`;
+    box.addEventListener('click', () => openQuestion(q));
+    grid.appendChild(box);
+  }
+}
+
+function openQuestion(q){
+  if(!config || !config.questions || config.questions.length < 5){
+    alert('Soal belum diatur oleh panitia. Hubungi admin untuk mengisi soal terlebih dahulu.');
+    return;
+  }
+  currentQ = q;
+  $('modalTitle').textContent = 'Soal ' + q + ' — ' + getTeamName(currentTeam);
+  $('modalQtext').textContent = config.questions[q-1].text;
+  $('answerInput').value = (teamStatus[q] && teamStatus[q].answer) || '';
+  $('modalFeedback').className = 'feedback';
+  $('modalFeedback').textContent = '';
+  $('overlay').classList.add('active');
+  setTimeout(() => $('answerInput').focus(), 50);
+}
+
+function closeModal(){
+  $('overlay').classList.remove('active');
+}
+
+async function submitAnswer(){
+  const val = $('answerInput').value.trim();
+  if(!val){
+    $('answerInput').focus();
+    return;
+  }
+  const correctAns = (config.questions[currentQ-1].answer || '').trim().toLowerCase();
+  const isCorrect = val.toLowerCase() === correctAns;
+  teamStatus[currentQ] = { status: isCorrect ? 'correct' : 'wrong', answer: val };
+  await setTeamStatus(currentTeam, teamStatus);
+
+  const fb = $('modalFeedback');
+  fb.textContent = isCorrect ? 'Jawaban benar!' : 'Jawaban salah.';
+  fb.className = 'feedback show ' + (isCorrect ? 'ok' : 'bad');
+
+  renderQuestionGrid();
+  const boxes = document.querySelectorAll('.qbox');
+  const box = boxes[currentQ-1];
+  box.classList.add('flip');
+  setTimeout(() => box.classList.remove('flip'), 400);
+
+  setTimeout(closeModal, 700);
+}
+
+/* Admin */
+function renderAdminForm(){
+  const form = $('adminForm');
+  form.innerHTML = '';
+  const qs = (config && config.questions && config.questions.length === 5) ? config.questions : Array.from({length:5}, () => ({text:'', answer:''}));
+  qs.forEach((q, idx) => {
+    const div = document.createElement('div');
+    div.className = 'admin-q';
+    div.innerHTML = `
+      <div class="admin-field">
+        <label>Soal ${idx+1}</label>
+        <input type="text" id="adminQ${idx}" value="${escapeHtml(q.text)}" placeholder="Tulis pertanyaan soal ${idx+1}">
+      </div>
+      <div class="admin-field">
+        <label>Kunci jawaban ${idx+1}</label>
+        <input type="text" id="adminA${idx}" value="${escapeHtml(q.answer)}" placeholder="Jawaban yang benar">
+      </div>
+    `;
+    form.appendChild(div);
+  });
+}
+
+function escapeHtml(str){
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function saveConfig(){
+  const questions = [];
+  for(let i=0;i<5;i++){
+    const text = $('adminQ'+i).value.trim();
+    const answer = $('adminA'+i).value.trim();
+    if(!text || !answer){
+      $('adminStatus').textContent = 'Isi semua 5 soal dan kunci jawaban sebelum menyimpan.';
+      return;
+    }
+    questions.push({text, answer});
+  }
+  try{
+    await storageSet('config', JSON.stringify({questions}));
+    config = {questions};
+    $('adminStatus').textContent = 'Soal dan kunci jawaban tersimpan.';
+    $('warnBox').style.display = 'none';
+  }catch(e){
+    $('adminStatus').textContent = 'Gagal menyimpan, coba lagi.';
+  }
+}
+
+async function resetAllStatus(){
+  if(!confirm('Reset status jawaban semua kelompok (1-7)? Tindakan ini tidak bisa dibatalkan.')) return;
+  for(let i=1;i<=TEAM_COUNT;i++){
+    await setTeamStatus(i, {});
+  }
+  $('adminStatus').textContent = 'Status semua kelompok telah direset.';
+  renderLanding();
+}
+
+/* Wiring */
+$('goAdmin').addEventListener('click', () => { renderAdminForm(); showScreen('screen-admin'); });
+$('backFromAdmin').addEventListener('click', () => { renderLanding(); showScreen('screen-landing'); });
+$('backToLanding').addEventListener('click', () => { renderLanding(); showScreen('screen-landing'); });
+$('saveConfig').addEventListener('click', saveConfig);
+$('resetAll').addEventListener('click', resetAllStatus);
+$('cancelBtn').addEventListener('click', closeModal);
+$('submitBtn').addEventListener('click', submitAnswer);
+$('answerInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') submitAnswer(); });
+$('overlay').addEventListener('click', (e) => { if(e.target === $('overlay')) closeModal(); });
+
+(async function init(){
+  await loadConfig();
+  await renderLanding();
+})();
+</script>
+</body>
+</html>
