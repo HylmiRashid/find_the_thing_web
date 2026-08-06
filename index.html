@@ -223,7 +223,7 @@
     background: #0D1130;
     color: var(--text);
     font-size: 15px;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
   }
   .modal input[type=text]:focus{ outline: 2px solid var(--gold-dim); }
   .modal input[type=password]{
@@ -323,6 +323,14 @@
   .feedback.show{ display:block; }
   .feedback.ok{ color: var(--green); }
   .feedback.bad{ color: var(--red); }
+  #modalFeedback{
+    margin-top: 1px;
+    margin-bottom: 15px;
+    min-height: 20px;
+  }
+  #overlay .modal-actions{
+    margin-top: 2px;
+  }
   .warn-box{
     background: var(--panel);
     border: 1px solid var(--gold-dim);
