@@ -572,7 +572,7 @@ async function submitPassword(){
   const expected = TEAM_PASSWORDS[pendingTeam] || '';
   const fb = $('passwordFeedback');
   if(!input){
-    fb.textContent = 'Password tidak boleh kosong.';
+    fb.textContent = 'Password tidak boleh kosong';
     fb.className = 'feedback show bad';
     $('passwordInput').focus();
     return;
