@@ -226,6 +226,75 @@
     margin-bottom: 16px;
   }
   .modal input[type=text]:focus{ outline: 2px solid var(--gold-dim); }
+  .modal input[type=password]{
+    width:100%;
+    height: 48px;
+    padding: 0 46px 0 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: #0D1130;
+    color: var(--text);
+    font-size: 15px;
+    line-height: 48px;
+    margin-bottom: 16px;
+    outline: none;
+    display: block;
+  }
+  .modal input[type=password]:focus{
+    outline: 2px solid var(--gold-dim);
+    border-color: var(--gold-dim);
+  }
+  .password-field{
+    position: relative;
+  }
+  .password-toggle{
+    position: absolute;
+    right: 10px;
+    top: 9px;
+    transform: none;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    background: transparent;
+    color: var(--text-dim);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding:0;
+    border-radius: 999px;
+    margin: 0;
+    line-height: 0;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+  }
+  .password-toggle:hover{
+    color: var(--gold);
+    background: rgba(255, 176, 32, 0.08);
+  }
+  .password-toggle:active,
+  .password-toggle:focus{
+    transform: none;
+  }
+  .password-toggle:focus-visible{
+    outline: 2px solid var(--gold-dim);
+    outline-offset: 2px;
+  }
+  .password-toggle svg{
+    width: 18px;
+    height: 18px;
+    display:block;
+  }
+  #passwordFeedback{
+    margin-top: 12px;
+    margin-bottom: 16px;
+    min-height: 22px;
+  }
+  #passwordOverlay .modal-actions{
+    margin-top: 4px;
+  }
   .modal-actions{ display:flex; gap:10px; }
   .btn{
     flex:1;
@@ -263,6 +332,12 @@
     color: var(--text-dim);
     text-align: center;
     margin-bottom: 24px;
+  }
+  .modal .hint{
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 8px 0 18px;
   }
 </style>
 </head>
@@ -310,6 +385,28 @@
   </div>
 </div>
 
+<!-- PASSWORD MODAL -->
+<div class="overlay" id="passwordOverlay">
+  <div class="modal">
+    <h3 id="passwordTitle">Masukkan Password</h3>
+    <div class="hint" id="passwordHint">Silakan isi password untuk membuka tampilan pilih nomor soal</div>
+    <div class="password-field">
+      <input type="password" id="passwordInput" placeholder="Ketik password di sini" autocomplete="off">
+      <button type="button" class="password-toggle" id="passwordToggleBtn" aria-label="Tampilkan password" aria-pressed="false">
+        <svg id="passwordEyeIcon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/>
+        </svg>
+      </button>
+    </div>
+    <div class="feedback" id="passwordFeedback"></div>
+    <div class="modal-actions">
+      <button class="btn" id="passwordCancelBtn">Batal</button>
+      <button class="btn primary" id="passwordSubmitBtn">Masuk</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const TEAM_COUNT = 7;
 const TEAM_NAMES = {
@@ -321,6 +418,15 @@ const TEAM_NAMES = {
   6: 'Kelompok Shantita',
   7: 'Kelompok Midzan'
 };
+const TEAM_PASSWORDS = {
+  1: 'vrn26101',
+  2: 'syd26102',
+  3: 'mlk26103',
+  4: 'dnl26104',
+  5: 'alb26105',
+  6: 'shn26106',
+  7: 'mdz26107'
+};
 const QUESTIONS = [
   { text: 'Tentukan gambar yang tepat untuk menggantikan tanda tanya pada gambar tersebut !', answer: 'D' },
   { text: 'Berdasarkan nilai A, B, dan C tersebut, tentukanlah hasil dari A x C x A + B + C !', answer: '26' },
@@ -331,6 +437,8 @@ const QUESTIONS = [
 let teamStatus = {}; // {1: {status,answer}, ...} for current open team
 let currentTeam = null;
 let currentQ = null;
+let pendingTeam = null;
+let passwordVisible = false;
 
 const $ = (id) => document.getElementById(id);
 
@@ -418,9 +526,66 @@ async function renderLanding(){
       <div class="progress">${correctCount}/5 benar</div>
       <div class="dots">${dots}</div>
     `;
-    card.addEventListener('click', () => openTeam(i));
+    card.addEventListener('click', () => openPasswordGate(i));
     grid.appendChild(card);
   }
+}
+
+function openPasswordGate(teamNum){
+  pendingTeam = teamNum;
+  passwordVisible = false;
+  $('passwordTitle').textContent = 'Password ' + getTeamName(teamNum);
+  $('passwordHint').textContent = 'Masukkan password untuk membuka tampilan pilih nomor soal.';
+  $('passwordInput').value = '';
+  $('passwordInput').type = 'password';
+  $('passwordToggleBtn').setAttribute('aria-label', 'Tampilkan password');
+  $('passwordToggleBtn').setAttribute('aria-pressed', 'false');
+  $('passwordFeedback').className = 'feedback';
+  $('passwordFeedback').textContent = '';
+  $('passwordOverlay').classList.add('active');
+  setTimeout(() => $('passwordInput').focus(), 50);
+}
+
+function closePasswordGate(){
+  pendingTeam = null;
+  passwordVisible = false;
+  $('passwordInput').type = 'password';
+  $('passwordToggleBtn').setAttribute('aria-label', 'Tampilkan password');
+  $('passwordToggleBtn').setAttribute('aria-pressed', 'false');
+  $('passwordOverlay').classList.remove('active');
+}
+
+function togglePasswordVisibility(){
+  passwordVisible = !passwordVisible;
+  $('passwordInput').type = passwordVisible ? 'text' : 'password';
+  $('passwordToggleBtn').setAttribute('aria-label', passwordVisible ? 'Sembunyikan password' : 'Tampilkan password');
+  $('passwordToggleBtn').setAttribute('aria-pressed', passwordVisible ? 'true' : 'false');
+  $('passwordInput').focus();
+}
+
+async function submitPassword(){
+  if(pendingTeam === null){
+    closePasswordGate();
+    return;
+  }
+  const input = $('passwordInput').value.trim();
+  const expected = TEAM_PASSWORDS[pendingTeam] || '';
+  const fb = $('passwordFeedback');
+  if(!input){
+    fb.textContent = 'Password tidak boleh kosong.';
+    fb.className = 'feedback show bad';
+    $('passwordInput').focus();
+    return;
+  }
+  if(input !== expected){
+    fb.textContent = 'Password Salah';
+    fb.className = 'feedback show bad';
+    $('passwordInput').select();
+    return;
+  }
+  const teamNum = pendingTeam;
+  closePasswordGate();
+  await openTeam(teamNum);
 }
 
 async function openTeam(teamNum){
@@ -490,6 +655,11 @@ $('cancelBtn').addEventListener('click', closeModal);
 $('submitBtn').addEventListener('click', submitAnswer);
 $('answerInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') submitAnswer(); });
 $('overlay').addEventListener('click', (e) => { if(e.target === $('overlay')) closeModal(); });
+$('passwordCancelBtn').addEventListener('click', closePasswordGate);
+$('passwordSubmitBtn').addEventListener('click', submitPassword);
+$('passwordToggleBtn').addEventListener('click', togglePasswordVisibility);
+$('passwordInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') submitPassword(); });
+$('passwordOverlay').addEventListener('click', (e) => { if(e.target === $('passwordOverlay')) closePasswordGate(); });
 
 (async function init(){
   await renderLanding();
