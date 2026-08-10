@@ -342,6 +342,18 @@ const QUESTIONS = [
   { text: 'Tentukan bilangan yang tepat untuk menggantikan tanda tanya tersebut !', answer: '13' },
   { text: 'Tentukan bilangan yang tepat untuk menggantikan tanda tanya pada gambar tersebut !', answer: '36' }
 ];
+// Soal dan jawaban khusus untuk soal ke-6, berbeda tiap kelompok.
+// Isi teks & jawaban sesuai kebutuhan tiap kelompok (kunci disimpan di sini).
+// Support multiple accepted answers: provide an array of acceptable strings per team.
+const TEAM_Q6 = {
+  1: { text: 'Masukan tebakan anda', answer: ['Keyboard'] },
+  2: { text: 'Masukan tebakan anda', answer: ['Mouse', 'Tetikus'] },
+  3: { text: 'Masukan tebakan anda', answer: ['Flashdisk', 'Flash Drive'] },
+  4: { text: 'Masukan tebakan anda', answer: ['Monitor'] },
+  5: { text: 'Masukan tebakan anda', answer: ['Earphone'] },
+  6: { text: 'Masukan tebakan anda', answer: ['Proyektor', 'Projektor', 'Projector'] },
+  7: { text: 'Masukan tebakan anda', answer: ['Charger', 'Casan'] }
+};
 let teamStatus = {}; // {1: {status,answer}, ...} for current open team
 let currentTeam = null;
 let currentQ = null;
@@ -420,7 +432,7 @@ async function renderLanding(){
     card.className = 'team-card';
     let correctCount = 0, answeredCount = 0;
     let dots = '';
-    for(let q=1;q<=5;q++){
+    for(let q=1;q<=6;q++){
       const s = status[q] && status[q].status;
       if(s === 'correct'){ correctCount++; answeredCount++; dots += '<div class="dot correct"></div>'; }
       else if(s === 'wrong'){ answeredCount++; dots += '<div class="dot wrong"></div>'; }
@@ -429,7 +441,7 @@ async function renderLanding(){
     card.innerHTML = `
       <span class="num">${i}</span>
       <span class="label">${getTeamName(i)}</span>
-      <div class="progress">${correctCount}/5 benar</div>
+      <div class="progress">${correctCount}/6 benar</div>
       <div class="dots">${dots}</div>
     `;
     card.addEventListener('click', () => openTeam(i));
@@ -448,7 +460,7 @@ async function openTeam(teamNum){
 function renderQuestionGrid(){
   const grid = $('qGrid');
   grid.innerHTML = '';
-  for(let q=1;q<=5;q++){
+  for(let q=1;q<=6;q++){
     const s = teamStatus[q] && teamStatus[q].status;
     const box = document.createElement('div');
     box.className = 'qbox ' + (s === 'correct' ? 'correct' : s === 'wrong' ? 'wrong' : 'unanswered');
@@ -461,7 +473,12 @@ function renderQuestionGrid(){
 function openQuestion(q){
   currentQ = q;
   $('modalTitle').textContent = 'Soal ' + q + ' — ' + getTeamName(currentTeam);
-  $('modalQtext').textContent = QUESTIONS[q-1].text;
+  if(q === 6){
+    const teamQ = TEAM_Q6[currentTeam] || {};
+    $('modalQtext').textContent = teamQ.text || 'Soal tidak tersedia untuk kelompok ini.';
+  }else{
+    $('modalQtext').textContent = QUESTIONS[q-1].text;
+  }
   $('answerInput').value = (teamStatus[q] && teamStatus[q].answer) || '';
   $('modalFeedback').className = 'feedback';
   $('modalFeedback').textContent = '';
@@ -479,8 +496,20 @@ async function submitAnswer(){
     $('answerInput').focus();
     return;
   }
-  const correctAns = (QUESTIONS[currentQ-1].answer || '').trim().toLowerCase();
-  const isCorrect = val.toLowerCase() === correctAns;
+  let correctAns = '';
+  if(currentQ === 6){
+    const teamQ = TEAM_Q6[currentTeam] || {};
+    correctAns = teamQ.answer || []; // may be array
+  }else{
+    correctAns = QUESTIONS[currentQ-1].answer || [];
+  }
+  const userVal = val.toLowerCase().trim();
+  let isCorrect = false;
+  if(Array.isArray(correctAns)){
+    isCorrect = correctAns.map(a => String(a).toLowerCase().trim()).includes(userVal);
+  }else{
+    isCorrect = userVal === String(correctAns).toLowerCase().trim();
+  }
   teamStatus[currentQ] = { status: isCorrect ? 'correct' : 'wrong', answer: val };
   await setTeamStatus(currentTeam, teamStatus);
 
