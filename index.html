@@ -316,6 +316,7 @@
     <h3 id="modalTitle">Soal 1</h3>
     <div class="qtext" id="modalQtext"></div>
     <input type="text" id="answerInput" placeholder="Ketik jawaban di sini" autocomplete="off">
+    <div class="hint" id="modalHint"></div>
     <div class="feedback" id="modalFeedback"></div>
     <div class="modal-actions">
       <button class="btn" id="cancelBtn">Batal</button>
@@ -479,9 +480,37 @@ function openQuestion(q){
   }else{
     $('modalQtext').textContent = QUESTIONS[q-1].text;
   }
-  $('answerInput').value = (teamStatus[q] && teamStatus[q].answer) || '';
-  $('modalFeedback').className = 'feedback';
-  $('modalFeedback').textContent = '';
+  const existing = teamStatus[q] || {};
+  $('answerInput').value = existing.answer || '';
+  const fb = $('modalFeedback');
+  fb.className = 'feedback';
+  fb.textContent = '';
+  const hint = $('modalHint');
+  hint.textContent = '';
+  // Special handling for soal 6: enforce max 2 attempts
+  if(q === 6){
+    const attempts = existing.attempts || 0;
+    const alreadyCorrect = existing.status === 'correct';
+    const remaining = Math.max(0, 2 - attempts);
+    if(alreadyCorrect){
+      hint.textContent = 'Sudah menjawab benar — tidak dapat mengubah jawaban.';
+      $('submitBtn').disabled = true;
+      $('answerInput').disabled = true;
+    }else if(attempts >= 2){
+      hint.textContent = 'Batas percobaan tercapai (2 kali).';
+      $('submitBtn').disabled = true;
+      $('answerInput').disabled = true;
+    }else{
+      hint.textContent = 'Sisa percobaan: ' + remaining + ' kali.';
+      $('submitBtn').disabled = false;
+      $('answerInput').disabled = false;
+    }
+  }else{
+    // non-q6: always allow
+    $('submitBtn').disabled = false;
+    $('answerInput').disabled = false;
+  }
+
   $('overlay').classList.add('active');
   setTimeout(() => $('answerInput').focus(), 50);
 }
@@ -496,26 +525,74 @@ async function submitAnswer(){
     $('answerInput').focus();
     return;
   }
-  let correctAns = '';
+  // For question 6, enforce attempt limits and track attempts
+  let correctAns;
   if(currentQ === 6){
     const teamQ = TEAM_Q6[currentTeam] || {};
-    correctAns = teamQ.answer || []; // may be array
-  }else{
-    correctAns = QUESTIONS[currentQ-1].answer || [];
-  }
-  const userVal = val.toLowerCase().trim();
-  let isCorrect = false;
-  if(Array.isArray(correctAns)){
-    isCorrect = correctAns.map(a => String(a).toLowerCase().trim()).includes(userVal);
-  }else{
-    isCorrect = userVal === String(correctAns).toLowerCase().trim();
-  }
-  teamStatus[currentQ] = { status: isCorrect ? 'correct' : 'wrong', answer: val };
-  await setTeamStatus(currentTeam, teamStatus);
+    correctAns = teamQ.answer || [];
+    const existing = teamStatus[currentQ] || {};
+    const attempts = existing.attempts || 0;
+    const alreadyCorrect = existing.status === 'correct';
+    if(alreadyCorrect){
+      const fb = $('modalFeedback');
+      fb.textContent = 'Sudah menjawab benar — tidak dapat mengubah jawaban.';
+      fb.className = 'feedback show ok';
+      return;
+    }
+    if(attempts >= 2){
+      const fb = $('modalFeedback');
+      fb.textContent = 'Batas percobaan tercapai (2 kali).';
+      fb.className = 'feedback show bad';
+      return;
+    }
+    // continue to evaluate and increment attempts
+    const userVal = val.toLowerCase().trim();
+    let isCorrect = false;
+    if(Array.isArray(correctAns)){
+      isCorrect = correctAns.map(a => String(a).toLowerCase().trim()).includes(userVal);
+    }else{
+      isCorrect = userVal === String(correctAns).toLowerCase().trim();
+    }
+    const newAttempts = attempts + 1;
+    teamStatus[currentQ] = { status: isCorrect ? 'correct' : 'wrong', answer: val, attempts: newAttempts };
+    await setTeamStatus(currentTeam, teamStatus);
 
-  const fb = $('modalFeedback');
-  fb.textContent = isCorrect ? 'Jawaban benar!' : 'Jawaban salah.';
-  fb.className = 'feedback show ' + (isCorrect ? 'ok' : 'bad');
+    const fb = $('modalFeedback');
+    if(isCorrect){
+      fb.textContent = 'Jawaban benar!';
+      fb.className = 'feedback show ok';
+      // disable further edits
+      $('submitBtn').disabled = true;
+      $('answerInput').disabled = true;
+    }else{
+      if(newAttempts >= 2){
+        fb.textContent = 'Jawaban salah. Batas percobaan tercapai.';
+        fb.className = 'feedback show bad';
+        $('submitBtn').disabled = true;
+        $('answerInput').disabled = true;
+      }else{
+        const remaining = Math.max(0, 2 - newAttempts);
+        fb.textContent = 'Jawaban salah. Sisa percobaan: ' + remaining + ' kali.';
+        fb.className = 'feedback show bad';
+      }
+    }
+  }else{
+    // non-q6 handling (unchanged)
+    correctAns = QUESTIONS[currentQ-1].answer || [];
+    const userVal = val.toLowerCase().trim();
+    let isCorrect = false;
+    if(Array.isArray(correctAns)){
+      isCorrect = correctAns.map(a => String(a).toLowerCase().trim()).includes(userVal);
+    }else{
+      isCorrect = userVal === String(correctAns).toLowerCase().trim();
+    }
+    teamStatus[currentQ] = { status: isCorrect ? 'correct' : 'wrong', answer: val };
+    await setTeamStatus(currentTeam, teamStatus);
+
+    const fb = $('modalFeedback');
+    fb.textContent = isCorrect ? 'Jawaban benar!' : 'Jawaban salah.';
+    fb.className = 'feedback show ' + (isCorrect ? 'ok' : 'bad');
+  }
 
   renderQuestionGrid();
   const boxes = document.querySelectorAll('.qbox');
